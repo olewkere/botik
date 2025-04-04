@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from functools import wraps # Для декоратора login_required
 from models import db, User, Task # Імпортуємо Task
 from werkzeug.exceptions import NotFound # Для обробки 404
+from datetime import datetime
 
 load_dotenv()
 app = Flask(__name__)
@@ -17,6 +18,11 @@ db_host = os.getenv('DATABASE_HOST')
 db_name = os.getenv('DATABASE_NAME')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+@app.context_processor
+def inject_current_year():
+    """Робить поточний рік доступним для всіх шаблонів."""
+    return {'current_year': datetime.utcnow().year}
 
 # --- Ініціалізація розширень ---
 db.init_app(app)
