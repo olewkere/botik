@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Вхід - Мій Планувальник{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h2>Вхід до системи</h2></div>
+            <div class="card-body">
+                <form action="{{ url_for('login') }}" method="post">
+                    <div class="mb-3">
+                        <label for="login-username" class="form-label">Ім'я користувача:</label>
+                        <input type="text" class="form-control" id="login-username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="login-password" class="form-label">Пароль:</label>
+                        <input type="password" class="form-control" id="login-password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Увійти</button>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                Немає акаунту? <a href="{{ url_for('register') }}">Зареєструватися</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

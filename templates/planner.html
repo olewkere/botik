@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Ваш Планувальник{% endblock %}
+
+{% block content %}
+<h2>📅 Мій Планувальник Завдань</h2>
+<hr>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>📝 Додати нове завдання</h4>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('add_task') }}" method="post" class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <label for="content" class="visually-hidden">Текст завдання</label>
+                <input type="text" class="form-control" id="content" name="content" placeholder="Напишіть ваше завдання тут..." required>
+            </div>
+            <div class="col-md-4">
+                 <label for="category" class="visually-hidden">Категорія</label>
+                 <select name="category" id="category" class="form-select">
+                     {% for cat_key, cat_name in categories.items() %}
+                     <option value="{{ cat_key }}" {% if cat_key == 'general' %}selected{% endif %}>{{ cat_name }}</option>
+                     {% endfor %}
+                 </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Додати</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div class="row">
+  {% for category_key, category_name in categories.items() %}
+    <div class="col-lg-6 mb-4"> <div class="category-section">
+            <h3 class="category-title">{{ category_name }}</h3>
+            {% set tasks = tasks_by_category[category_key] %}
+            {% if tasks %}
+                <ul class="list-unstyled">
+                    {% for task in tasks %}
+                    <li class="task-item {% if task.is_completed %}completed{% endif %}">
+                        <span class="task-content">{{ task.content }}</span>
+                        <div class="task-actions">
+                            <form action="{{ url_for('toggle_task', task_id=task.id) }}" method="post">
+                                <button type="submit" class="btn btn-sm {% if task.is_completed %}btn-secondary{% else %}btn-success{% endif %}">
+                                    {% if task.is_completed %}↩️{% else %}✔️{% endif %}
+                                </button>
+                            </form>
+                            <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-warning">✏️</a>
+                            <form action="{{ url_for('delete_task', task_id=task.id) }}" method="post" onsubmit="return confirm('Ви впевнені, що хочете видалити це завдання?');">
+                                <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                            </form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">Немає завдань у цій категорії.</p>
+            {% endif %}
+        </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

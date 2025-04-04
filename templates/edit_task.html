@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Редагувати Завдання - Мій Планувальник{% endblock %}
+
+{% block content %}
+<h2>✏️ Редагувати Завдання</h2>
+<hr>
+
+<div class="card">
+    <div class="card-body">
+        <form action="{{ url_for('edit_task', task_id=task.id) }}" method="post">
+            <div class="mb-3">
+                <label for="content" class="form-label">Текст завдання:</label>
+                <input type="text" class="form-control" id="content" name="content" value="{{ task.content }}" required>
+            </div>
+             <div class="mb-3">
+                <label for="category" class="form-label">Категорія:</label>
+                <select name="category" id="category" class="form-select">
+                     {% for cat_key, cat_name in categories.items() %}
+                     <option value="{{ cat_key }}" {% if cat_key == task.category %}selected{% endif %}>{{ cat_name }}</option>
+                     {% endfor %}
+                </select>
+             </div>
+            <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+            <a href="{{ url_for('planner') }}" class="btn btn-secondary">Скасувати</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

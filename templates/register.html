@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Реєстрація - Мій Планувальник{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h2>Створення нового акаунту</h2></div>
+            <div class="card-body">
+                <form action="{{ url_for('register') }}" method="post">
+                    <div class="mb-3">
+                        <label for="register-username" class="form-label">Ім'я користувача:</label>
+                        <input type="text" class="form-control" id="register-username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="register-password" class="form-label">Пароль:</label>
+                        <input type="password" class="form-control" id="register-password" name="password" required>
+                    </div>
+                     <div class="mb-3">
+                        <label for="register-password-confirm" class="form-label">Підтвердіть пароль:</label>
+                        <input type="password" class="form-control" id="register-password-confirm" name="password_confirm" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Зареєструватися</button>
+                </form>
+            </div>
+             <div class="card-footer text-center">
+                Вже є акаунт? <a href="{{ url_for('login') }}">Увійти</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
