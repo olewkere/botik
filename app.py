@@ -2,7 +2,7 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
-from .models import db, User # Імпортуємо db та User з models.py
+from models import db, User # Імпортуємо db та User з models.py
 
 load_dotenv()
 
