@@ -1,1 +1,1 @@
-# botik
+Планувальник для Telegram Bot-(а)
