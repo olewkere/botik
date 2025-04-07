@@ -1,6 +1,7 @@
 import os
 import threading
 import logging
+import asyncio
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
 from functools import wraps
@@ -288,10 +289,9 @@ WEBAPP_URL = os.getenv('WEBAPP_URL') # Потрібен для кнопки
 
 if not BOT_TOKEN:
     logger.warning("BOT_TOKEN не знайдено! Telegram бот не буде запущено.")
-    bot_application = None # Явно вказуємо, що бот не створений
+    bot_application = None
 else:
     logger.info("Налаштування Telegram бота...")
-
     bot_builder = Application.builder().token(BOT_TOKEN)
     bot_application = bot_builder.build()
 
@@ -300,23 +300,48 @@ else:
         logger.info(f"Додано webapp_url ({WEBAPP_URL}) до bot_data.")
     else:
          logger.warning("WEBAPP_URL не встановлено. Кнопка WebApp може не працювати.")
-        
+
     logger.info("Реєстрація обробників команд...")
     bot_application.add_handler(CommandHandler("start", bot_handlers.start))
     bot_application.add_handler(CommandHandler("planner", bot_handlers.planner))
     logger.info("Реєстрація обробника WebApp даних...")
     bot_application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, bot_handlers.web_app_data_handler))
 
+    # ! ОНОВЛЕНА ФУНКЦІЯ ДЛЯ ПОТОКУ !
     def run_bot_polling():
-        """Функція для запуску polling у потоці."""
-        logger.info("Запуск Telegram Bot Polling у фоновому потоці...")
-        try:
-            bot_application.run_polling(allowed_updates=Update.ALL_TYPES)
-            logger.info("Telegram Bot Polling зупинено.")
-        except Exception as e:
-            logger.error(f"Помилка в потоці Telegram бота: {e}", exc_info=True)
+        """Функція для запуску polling у потоці з власним event loop."""
+        thread_name = threading.current_thread().name # Отримуємо ім'я потоку для логів
+        logger.info(f"Налаштування event loop для потоку '{thread_name}'...")
+        # Створюємо новий event loop для цього потоку
+        loop = asyncio.new_event_loop()
+        # Встановлюємо цей loop як поточний для цього потоку
+        asyncio.set_event_loop(loop)
+        logger.info(f"Event loop створено та встановлено для потоку '{thread_name}'.")
 
-    bot_thread = threading.Thread(target=run_bot_polling, daemon=True)
+        logger.info(f"Запуск Telegram Bot Polling у потоці '{thread_name}'...")
+        try:
+            # Тепер run_polling має знайти event loop у цьому потоці
+            # run_polling сам подбає про запуск та роботу loop всередині
+            bot_application.run_polling(allowed_updates=Update.ALL_TYPES)
+            logger.info(f"Telegram Bot Polling коректно зупинено в потоці '{thread_name}'.")
+        except Exception as e:
+            # Логуємо будь-які помилки, що виникають під час роботи polling
+            logger.error(f"Помилка під час роботи polling у потоці Telegram бота ('{thread_name}'): {e}", exc_info=True)
+        finally:
+            # Коли run_polling завершується (наприклад, при зупинці програми),
+            # намагаємось закрити loop, хоча для daemon потоку це може не виконатись.
+            try:
+                if loop.is_running():
+                    logger.info(f"Зупинка event loop для потоку '{thread_name}'.")
+                    loop.stop()
+                logger.info(f"Закриття event loop для потоку '{thread_name}'.")
+                loop.close()
+            except Exception as e:
+                logger.error(f"Помилка при закритті event loop у потоці '{thread_name}': {e}", exc_info=True)
+
+
+    # Створюємо та запускаємо потік для бота (додаємо ім'я для ясності в логах)
+    bot_thread = threading.Thread(target=run_bot_polling, name="TelegramBotThread", daemon=True)
     bot_thread.start()
     logger.info(f"Потік для Telegram бота запущено: {bot_thread.name}")
 
