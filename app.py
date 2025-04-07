@@ -282,7 +282,7 @@ def edit_task(task_id):
 def page_not_found(e):
     return render_template('404.html'), 404
 
-
+# --- Логіка запуску Telegram Бота ---
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 WEBAPP_URL = os.getenv('WEBAPP_URL') # Потрібен для кнопки
 
@@ -291,18 +291,16 @@ if not BOT_TOKEN:
     bot_application = None # Явно вказуємо, що бот не створений
 else:
     logger.info("Налаштування Telegram бота...")
-    # Створюємо екземпляр Application
-    bot_builder = Application.builder().token(BOT_TOKEN)
 
-    # Додаємо webapp_url в контекст бота, щоб обробники мали до нього доступ
+    bot_builder = Application.builder().token(BOT_TOKEN)
+    bot_application = bot_builder.build()
+
     if WEBAPP_URL:
-        bot_builder.application.bot_data['webapp_url'] = WEBAPP_URL
+        bot_application.bot_data['webapp_url'] = WEBAPP_URL
+        logger.info(f"Додано webapp_url ({WEBAPP_URL}) до bot_data.")
     else:
          logger.warning("WEBAPP_URL не встановлено. Кнопка WebApp може не працювати.")
 
-    bot_application = bot_builder.build()
-
-    # Реєструємо обробники з bot.py
     bot_application.add_handler(CommandHandler("start", bot_handlers.start))
     bot_application.add_handler(CommandHandler("planner", bot_handlers.planner))
     bot_application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, bot_handlers.web_app_data_handler))
@@ -311,18 +309,14 @@ else:
         """Функція для запуску polling у потоці."""
         logger.info("Запуск Telegram Bot Polling у фоновому потоці...")
         try:
-            # Важливо: Використовуйте bot_application, а не створюйте новий
             bot_application.run_polling(allowed_updates=Update.ALL_TYPES)
             logger.info("Telegram Bot Polling зупинено.")
         except Exception as e:
             logger.error(f"Помилка в потоці Telegram бота: {e}", exc_info=True)
 
-    # Створюємо та запускаємо потік для бота
-    # daemon=True означає, що потік завершиться, коли завершиться основний процес
     bot_thread = threading.Thread(target=run_bot_polling, daemon=True)
     bot_thread.start()
     logger.info(f"Потік для Telegram бота запущено: {bot_thread.name}")
-
 
 # --- Запуск Flask (тільки для локальної розробки, Gunicorn це ігнорує) ---
 if __name__ == '__main__':
