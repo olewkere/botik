@@ -9,7 +9,6 @@ from datetime import datetime
 load_dotenv()
 app = Flask(__name__)
 
-# --- Конфігурація ---
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 db_user = os.getenv('DATABASE_USER')
 db_password = os.getenv('DATABASE_PASSWORD')
@@ -23,10 +22,10 @@ def inject_current_year():
     """Робить поточний рік доступним для всіх шаблонів."""
     return {'current_year': datetime.utcnow().year}
 
-# --- Ініціалізація розширень ---
 db.init_app(app)
 
-# --- Створення таблиць ---
+
+
 with app.app_context():
     try:
         print("Спроба створити/оновити таблиці бази даних...")
@@ -35,7 +34,6 @@ with app.app_context():
     except Exception as e:
         print(f"Помилка при створенні/оновленні таблиць: {e}")
 
-# --- Декоратор для перевірки входу ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -45,7 +43,8 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- Категорії та Емодзі ---
+
+
 CATEGORIES = {
     'spring': 'Весна 🌱',
     'summer': 'Літо ☀️',
@@ -54,7 +53,8 @@ CATEGORIES = {
     'general': 'Загальні 📌'
 }
 
-# --- Маршрути ---
+
+
 @app.route('/')
 def index():
     """Головна сторінка: перенаправляє на планувальник, якщо увійшов, інакше на логін."""
@@ -139,7 +139,8 @@ def logout():
     flash(f'До побачення, {username}! Ви успішно вийшли.', 'info')
     return redirect(url_for('login'))
 
-# --- Маршрути Планувальника ---
+
+
 @app.route('/planner')
 @login_required
 def planner():
@@ -189,13 +190,12 @@ def add_task():
 def toggle_task(task_id):
     """Відмічає завдання як виконане/невиконане."""
     task = Task.query.get_or_404(task_id)
-
-    # Дуже важливо: перевіряємо, чи завдання належить поточному користувачеві
+    
     if task.user_id != session['user_id']:
         flash('У вас немає доступу до цього завдання.', 'danger')
         return redirect(url_for('planner'))
 
-    task.is_completed = not task.is_completed # Змінюємо статус
+    task.is_completed = not task.is_completed
     try:
         db.session.commit()
         status = "виконано" if task.is_completed else "не виконано"
@@ -266,11 +266,41 @@ def edit_task(task_id):
 
     return render_template('edit_task.html', task=task, categories=CATEGORIES)
 
-# --- Обробник помилок ---
+@app.route('/export')
+@login_required
+def export_tasks():
+    """Генерує текстове представлення завдань для експорту."""
+    user_id = session['user_id']
+    user = User.query.get(user_id)
+    tasks = Task.query.filter_by(user_id=user_id).order_by(Task.category, Task.timestamp.desc()).all()
+
+    if not tasks:
+        flash('У вас ще немає завдань для експорту.', 'info')
+        return redirect(url_for('planner'))
+
+    export_text_lines = [f"📋 Список завдань для користувача: {user.username}\n"]
+
+    current_category = None
+    for task in tasks:
+        if task.category != current_category:
+            category_name = CATEGORIES.get(task.category, task.category.capitalize())
+            export_text_lines.append(f"\n--- {category_name} ---")
+            current_category = task.category
+
+        status_emoji = "✔️" if task.is_completed else "⭕"
+        export_text_lines.append(f"{status_emoji} {task.content}")
+
+    export_text = "\n".join(export_text_lines) # Об'єднуємо рядки
+
+    return render_template('export.html', export_text=export_text)
+
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
-# --- Запуск (для локальної розробки) ---
+
+
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0')
