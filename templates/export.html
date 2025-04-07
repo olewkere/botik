@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Експорт завдань{% endblock %}
+
+{% block content %}
+<h2>📋 Експорт завдань у текст</h2>
+<hr>
+
+<div class="card">
+    <div class="card-header">Ваш список завдань</div>
+    <div class="card-body">
+        <p>Нижче наведено ваш поточний список завдань у текстовому форматі. Ви можете скопіювати його та поділитися в Telegram.</p>
+        <div class="mb-3">
+            <textarea id="exportTextArea" class="form-control" rows="15" readonly>{{ export_text }}</textarea>
+        </div>
+        <button id="copyButton" class="btn btn-primary" onclick="copyText()">📄 Копіювати текст</button>
+        <a href="{{ url_for('planner') }}" class="btn btn-secondary">Назад до планувальника</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyText() {
+        const textArea = document.getElementById('exportTextArea');
+        const copyButton = document.getElementById('copyButton');
+
+        textArea.select();
+        textArea.setSelectionRange(0, 99999);
+
+        try {
+
+            navigator.clipboard.writeText(textArea.value).then(() => {
+
+                copyButton.textContent = '✅ Скопійовано!';
+                copyButton.classList.remove('btn-primary');
+                copyButton.classList.add('btn-success');
+                setTimeout(() => {
+                    copyButton.textContent = '📄 Копіювати текст';
+                    copyButton.classList.remove('btn-success');
+                    copyButton.classList.add('btn-primary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Помилка копіювання (Clipboard API): ', err);
+                fallbackCopyTextToClipboard(textArea.value);
+            });
+        } catch (err) {
+             console.error('Clipboard API не підтримується: ', err);
+             fallbackCopyTextToClipboard(textArea.value);
+        }
+    }
+  
+    function fallbackCopyTextToClipboard(text) {
+        const copyButton = document.getElementById('copyButton');
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                copyButton.textContent = '✅ Скопійовано!';
+                copyButton.classList.remove('btn-primary');
+                copyButton.classList.add('btn-success');
+                 setTimeout(() => {
+                    copyButton.textContent = '📄 Копіювати текст';
+                    copyButton.classList.remove('btn-success');
+                    copyButton.classList.add('btn-primary');
+                }, 2000);
+            } else {
+                 copyButton.textContent = '❌ Помилка копіювання';
+                 copyButton.classList.remove('btn-primary');
+                 copyButton.classList.add('btn-danger');
+                 console.error('Fallback: Не вдалося скопіювати');
+            }
+        } catch (err) {
+            copyButton.textContent = '❌ Помилка копіювання';
+            copyButton.classList.remove('btn-primary');
+            copyButton.classList.add('btn-danger');
+            console.error('Fallback: Помилка при копіюванні', err);
+        }
+    }
+</script>
+{% endblock %}
