@@ -65,7 +65,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             chat_id=user.id,
             text="Отримано порожні дані від Web App."
         )
-        
+
 def main() -> None:
     """Запускає бота."""
     logger.info("Запуск бота...")
@@ -73,6 +73,7 @@ def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("planner", planner))
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     logger.info("Бот починає опитування...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
