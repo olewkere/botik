@@ -25,7 +25,6 @@ def inject_current_year():
 db.init_app(app)
 
 
-
 with app.app_context():
     try:
         print("Спроба створити/оновити таблиці бази даних...")
@@ -44,7 +43,6 @@ def login_required(f):
     return decorated_function
 
 
-
 CATEGORIES = {
     'spring': 'Весна 🌱',
     'summer': 'Літо ☀️',
@@ -52,7 +50,6 @@ CATEGORIES = {
     'winter': 'Зима ❄️',
     'general': 'Загальні 📌'
 }
-
 
 
 @app.route('/')
@@ -129,6 +126,7 @@ def login():
 
     return render_template('login.html')
 
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -138,7 +136,6 @@ def logout():
     session.pop('username', None)
     flash(f'До побачення, {username}! Ви успішно вийшли.', 'info')
     return redirect(url_for('login'))
-
 
 
 @app.route('/planner')
@@ -156,6 +153,7 @@ def planner():
             tasks_by_category['general'].append(task)
 
     return render_template('planner.html', tasks_by_category=tasks_by_category, categories=CATEGORIES)
+
 
 @app.route('/add_task', methods=['POST'])
 @login_required
@@ -206,6 +204,7 @@ def toggle_task(task_id):
         print(f"Помилка зміни статусу завдання: {e}")
 
     return redirect(url_for('planner'))
+
 
 @app.route('/delete_task/<int:task_id>', methods=['POST'])
 @login_required
@@ -265,6 +264,7 @@ def edit_task(task_id):
             return render_template('edit_task.html', task=task, categories=CATEGORIES)
 
     return render_template('edit_task.html', task=task, categories=CATEGORIES)
+
 
 @app.route('/export')
 @login_required
