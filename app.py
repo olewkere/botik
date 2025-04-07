@@ -300,9 +300,11 @@ else:
         logger.info(f"Додано webapp_url ({WEBAPP_URL}) до bot_data.")
     else:
          logger.warning("WEBAPP_URL не встановлено. Кнопка WebApp може не працювати.")
-
+        
+    logger.info("Реєстрація обробників команд...")
     bot_application.add_handler(CommandHandler("start", bot_handlers.start))
     bot_application.add_handler(CommandHandler("planner", bot_handlers.planner))
+    logger.info("Реєстрація обробника WebApp даних...")
     bot_application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, bot_handlers.web_app_data_handler))
 
     def run_bot_polling():
