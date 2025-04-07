@@ -13,13 +13,9 @@
 
         if (shareButton) {
             shareButton.addEventListener('click', function() {
-                // 1. Збираємо завдання зі сторінки (або можна зробити API запит)
-                // Простіший варіант: збираємо прямо зі структури HTML
                 let tasksByCategory = {};
                 document.querySelectorAll('.category-section').forEach(section => {
                     const categoryTitleElement = section.querySelector('.category-title');
-                    // Витягуємо ключ категорії з назви (потрібно додати data-key в HTML)
-                    // АБО простіше - беремо текстову назву як є
                     const categoryName = categoryTitleElement ? categoryTitleElement.textContent.trim() : 'Невідома Категорія';
                     tasksByCategory[categoryName] = [];
 
@@ -30,7 +26,6 @@
                     });
                 });
 
-                // 2. Форматуємо текст для відправки
                 let exportTextLines = ["📋 Ваш список завдань:\n"];
                 for (const categoryName in tasksByCategory) {
                     if (tasksByCategory[categoryName].length > 0) {
@@ -42,18 +37,15 @@
                     }
                 }
                 const exportText = exportTextLines.join("\n");
-
-                // 3. Перевірка довжини (Telegram WebApp.sendData має ліміт ~4096 байт)
+                
                 if (new TextEncoder().encode(exportText).length > 4000) {
                    tg.showAlert("Вибачте, список завдань занадто довгий для прямої відправки. Спробуйте видалити деякі виконані завдання.");
                    return;
                 }
 
-                // 4. Надсилаємо дані боту
-                if (exportText.length > "📋 Ваш список завдань:\n".length) { // Перевіряємо, чи є що надсилати
+                if (exportText.length > "📋 Ваш список завдань:\n".length) {
                     tg.sendData(exportText);
-                    // Можна показати підтвердження, але sendData зазвичай закриває Web App
-                    // tg.showAlert('Список завдань відправлено боту. Перевірте чат із ним.');
+                    tg.showAlert('Завдання відправлено боту. Перевірте чат з ним, щоб поділитися.');
                 } else {
                     tg.showAlert('У вас немає завдань для поширення.');
                 }
@@ -64,7 +56,6 @@
 
     } else {
         console.error("Telegram WebApp script не завантажено або недоступний!");
-        // Можна показати повідомлення користувачу, що функція не доступна поза Telegram
         const shareButton = document.getElementById('shareTasksButton');
         if(shareButton) {
             shareButton.disabled = true;
