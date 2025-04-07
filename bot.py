@@ -1,18 +1,16 @@
-# bot.py
 import logging
 import os
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import MessageHandler, filters
 
-# Завантажуємо змінні середовища
 load_dotenv()
 
-# Налаштування логування (корисно для дебагу на сервері)
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-logging.getLogger("httpx").setLevel(logging.WARNING) # Щоб зменшити спам від httpx
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -23,9 +21,6 @@ if not BOT_TOKEN:
     exit()
 if not WEBAPP_URL:
     logger.error("Не знайдено WEBAPP_URL! Перевір змінні середовища.")
-    # Можна не виходити, але кнопка не працюватиме
-    # exit()
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Надсилає привітання та кнопку для відкриття Web App."""
@@ -33,15 +28,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
          await update.message.reply_text("На жаль, URL веб-додатку не налаштовано.")
          return
 
-    # Створюємо інформацію про Web App
     web_app_info = WebAppInfo(url=WEBAPP_URL)
 
-    # Створюємо кнопку, яка відкриває Web App
     button = InlineKeyboardButton(
         text="🚀 Відкрити Планувальник",
         web_app=web_app_info
     )
-    # Створюємо клавіатуру з однією кнопкою
     keyboard = InlineKeyboardMarkup([[button]])
 
     await update.message.reply_text(
@@ -53,22 +45,36 @@ async def planner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обробляє команду /planner, яка є синонімом /start для зручності."""
     await start(update, context)
 
-
+async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обробляє дані, отримані від Web App."""
+    user = update.effective_user
+    received_text = update.message.web_app_data.data
+    logger.info(f"Отримано дані Web App від {user.username} (ID: {user.id}): {len(received_text)} символів")
+    
+    if received_text:
+        await context.bot.send_message(
+            chat_id=user.id,
+            text="📋 Ваш список завдань для поширення:\n(Можете переслати це повідомлення forward)"
+        )
+        await context.bot.send_message(
+            chat_id=user.id,
+            text=received_text
+        )
+    else:
+         await context.bot.send_message(
+            chat_id=user.id,
+            text="Отримано порожні дані від Web App."
+        )
+        
 def main() -> None:
     """Запускає бота."""
     logger.info("Запуск бота...")
 
-    # Створюємо додаток та передаємо токен
     application = Application.builder().token(BOT_TOKEN).build()
-
-    # Реєструємо обробники команд
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("planner", planner)) # Додаткова команда
-
-    # Запускаємо бота в режимі опитування (polling)
+    application.add_handler(CommandHandler("planner", planner))
     logger.info("Бот починає опитування...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
-
 
 if __name__ == "__main__":
     main()
