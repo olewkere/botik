@@ -7,7 +7,7 @@ from functools import wraps
 from models import db, User, Task
 from werkzeug.exceptions import NotFound
 from datetime import datetime
-
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import bot as bot_handlers
 
