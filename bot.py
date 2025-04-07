@@ -10,25 +10,36 @@ logger = logging.getLogger(__name__)
 # Змінну WEBAPP_URL тепер будемо отримувати з основного додатку або os.getenv
 # Краще передавати її через context або отримувати напряму тут
 
+# bot.py
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Надсилає привітання та кнопку для відкриття Web App."""
-    # Отримуємо URL з context.bot_data або напряму з env
-    WEBAPP_URL = context.bot_data.get('webapp_url') # Отримуємо з контексту
-    if not WEBAPP_URL:
-         # Спробуємо отримати з env як запасний варіант
-         WEBAPP_URL = os.getenv('WEBAPP_URL')
-         if not WEBAPP_URL:
-              logger.warning("WEBAPP_URL не знайдено ні в context, ні в env для команди start")
-              await update.message.reply_text("На жаль, URL веб-додатку не налаштовано.")
-              return
+    logger.info(f"===== Команда /start або /planner отримана від користувача {update.effective_user.id} =====") # Більш помітний лог
+    WEBAPP_URL = context.bot_data.get('webapp_url')
+    logger.info(f"Спроба отримати WEBAPP_URL з context.bot_data. Результат: {WEBAPP_URL}") # Логуємо результат з контексту
 
+    if not WEBAPP_URL:
+         WEBAPP_URL = os.getenv('WEBAPP_URL')
+         logger.info(f"WEBAPP_URL не знайдено в context. Спроба отримати з os.getenv. Результат: {WEBAPP_URL}") # Логуємо результат з env
+
+    if not WEBAPP_URL:
+         logger.error("!!! WEBAPP_URL не вдалося отримати ні з context, ні з env. Команда start не може створити кнопку.") # Помітний лог помилки
+         await update.message.reply_text("На жаль, URL веб-додатку не налаштовано.")
+         return
+
+    logger.info(f"WEBAPP_URL '{WEBAPP_URL}' буде використано для створення кнопки.")
     web_app_info = WebAppInfo(url=WEBAPP_URL)
-    button = InlineKeyboardButton(text="🚀 Відкрити Планувальник", web_app=web_app_info)
+    button = InlineKeyboardButton(
+        text="🚀 Відкрити Планувальник",
+        web_app=web_app_info
+    )
     keyboard = InlineKeyboardMarkup([[button]])
+
     await update.message.reply_text(
         "Привіт! 👋 Натисни кнопку нижче, щоб відкрити свій планувальник завдань:",
         reply_markup=keyboard
     )
+    logger.info(f"Повідомлення з кнопкою WebApp надіслано користувачу {update.effective_user.id}")
 
 async def planner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Синонім /start."""
