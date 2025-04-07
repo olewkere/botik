@@ -1,4 +1,6 @@
 import os
+import threading
+import logging
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
 from functools import wraps
@@ -6,7 +8,17 @@ from models import db, User, Task
 from werkzeug.exceptions import NotFound
 from datetime import datetime
 
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import bot as bot_handlers
+
 load_dotenv()
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
@@ -266,41 +278,57 @@ def edit_task(task_id):
     return render_template('edit_task.html', task=task, categories=CATEGORIES)
 
 
-@app.route('/export')
-@login_required
-def export_tasks():
-    """Генерує текстове представлення завдань для експорту."""
-    user_id = session['user_id']
-    user = User.query.get(user_id)
-    tasks = Task.query.filter_by(user_id=user_id).order_by(Task.category, Task.timestamp.desc()).all()
-
-    if not tasks:
-        flash('У вас ще немає завдань для експорту.', 'info')
-        return redirect(url_for('planner'))
-
-    export_text_lines = [f"📋 Список завдань для користувача: {user.username}\n"]
-
-    current_category = None
-    for task in tasks:
-        if task.category != current_category:
-            category_name = CATEGORIES.get(task.category, task.category.capitalize())
-            export_text_lines.append(f"\n--- {category_name} ---")
-            current_category = task.category
-
-        status_emoji = "✔️" if task.is_completed else "⭕"
-        export_text_lines.append(f"{status_emoji} {task.content}")
-
-    export_text = "\n".join(export_text_lines) # Об'єднуємо рядки
-
-    return render_template('export.html', export_text=export_text)
-
-
-
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
 
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+WEBAPP_URL = os.getenv('WEBAPP_URL') # Потрібен для кнопки
 
+if not BOT_TOKEN:
+    logger.warning("BOT_TOKEN не знайдено! Telegram бот не буде запущено.")
+    bot_application = None # Явно вказуємо, що бот не створений
+else:
+    logger.info("Налаштування Telegram бота...")
+    # Створюємо екземпляр Application
+    bot_builder = Application.builder().token(BOT_TOKEN)
+
+    # Додаємо webapp_url в контекст бота, щоб обробники мали до нього доступ
+    if WEBAPP_URL:
+        bot_builder.application.bot_data['webapp_url'] = WEBAPP_URL
+    else:
+         logger.warning("WEBAPP_URL не встановлено. Кнопка WebApp може не працювати.")
+
+    bot_application = bot_builder.build()
+
+    # Реєструємо обробники з bot.py
+    bot_application.add_handler(CommandHandler("start", bot_handlers.start))
+    bot_application.add_handler(CommandHandler("planner", bot_handlers.planner))
+    bot_application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, bot_handlers.web_app_data_handler))
+
+    def run_bot_polling():
+        """Функція для запуску polling у потоці."""
+        logger.info("Запуск Telegram Bot Polling у фоновому потоці...")
+        try:
+            # Важливо: Використовуйте bot_application, а не створюйте новий
+            bot_application.run_polling(allowed_updates=Update.ALL_TYPES)
+            logger.info("Telegram Bot Polling зупинено.")
+        except Exception as e:
+            logger.error(f"Помилка в потоці Telegram бота: {e}", exc_info=True)
+
+    # Створюємо та запускаємо потік для бота
+    # daemon=True означає, що потік завершиться, коли завершиться основний процес
+    bot_thread = threading.Thread(target=run_bot_polling, daemon=True)
+    bot_thread.start()
+    logger.info(f"Потік для Telegram бота запущено: {bot_thread.name}")
+
+
+# --- Запуск Flask (тільки для локальної розробки, Gunicorn це ігнорує) ---
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0')
+    # При локальному запуску `python app.py` Flask запуститься,
+    # а потік з ботом вже буде працювати паралельно.
+    logger.info("Запуск Flask development server...")
+    # debug=True перезапускає додаток при змінах, що може перезапускати потік бота
+    # Краще вимкнути debug=True при тестуванні спільної роботи
+    app.run(debug=False, host='0.0.0.0', port=5000) # Використовуємо інший порт, якщо 5000 зайнятий
