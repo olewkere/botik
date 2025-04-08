@@ -2,69 +2,6 @@
 
 {% block title %}Ваш Планувальник{% endblock %}
 
-{% block scripts %}
-<script>
-    // Переконуємось, що об'єкт Telegram WebApp доступний
-    if (window.Telegram && window.Telegram.WebApp) {
-        const tg = window.Telegram.WebApp;
-        tg.ready(); // Повідомляємо Telegram, що додаток готовий
-
-        const shareButton = document.getElementById('shareTasksButton');
-
-        if (shareButton) {
-            shareButton.addEventListener('click', function() {
-                let tasksByCategory = {};
-                document.querySelectorAll('.category-section').forEach(section => {
-                    const categoryTitleElement = section.querySelector('.category-title');
-                    const categoryName = categoryTitleElement ? categoryTitleElement.textContent.trim() : 'Невідома Категорія';
-                    tasksByCategory[categoryName] = [];
-
-                    section.querySelectorAll('.task-item').forEach(item => {
-                        const content = item.querySelector('.task-content') ? item.querySelector('.task-content').textContent.trim() : '';
-                        const isCompleted = item.classList.contains('completed');
-                        tasksByCategory[categoryName].push({ content: content, completed: isCompleted });
-                    });
-                });
-
-                let exportTextLines = ["📋 Ваш список завдань:\n"];
-                for (const categoryName in tasksByCategory) {
-                    if (tasksByCategory[categoryName].length > 0) {
-                        exportTextLines.push(`\n--- ${categoryName} ---`);
-                        tasksByCategory[categoryName].forEach(task => {
-                            const statusEmoji = task.completed ? "✔️" : "⭕";
-                            exportTextLines.push(`${statusEmoji} ${task.content}`);
-                        });
-                    }
-                }
-                const exportText = exportTextLines.join("\n");
-                
-                if (new TextEncoder().encode(exportText).length > 4000) {
-                   tg.showAlert("Вибачте, список завдань занадто довгий для прямої відправки. Спробуйте видалити деякі виконані завдання.");
-                   return;
-                }
-
-                if (exportText.length > "📋 Ваш список завдань:\n".length) {
-                    tg.sendData(exportText);
-                    tg.showAlert('Завдання відправлено боту. Перевірте чат з ним, щоб поділитися.');
-                } else {
-                    tg.showAlert('У вас немає завдань для поширення.');
-                }
-            });
-        } else {
-             console.error("Кнопку 'shareTasksButton' не знайдено!");
-        }
-
-    } else {
-        console.error("Telegram WebApp script не завантажено або недоступний!");
-        const shareButton = document.getElementById('shareTasksButton');
-        if(shareButton) {
-            shareButton.disabled = true;
-            shareButton.textContent = "Функція доступна тільки в Telegram";
-        }
-    }
-</script>
-{% endblock %}
-
 {% block content %}
 <h2>📅 Мій Планувальник Завдань</h2>
 <hr>
@@ -94,7 +31,7 @@
     </div>
     
     <div class="mt-4 mb-4 text-center">
-        <button id="shareTasksButton" class="btn btn-info">📲 Поділитися списком в Telegram</button>
+        <a href="{{ url_for('export_tasks') }}" class="btn btn-secondary">📋 Експортувати завдання в текст</a>
     </div>
     
 </div>
