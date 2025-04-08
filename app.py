@@ -35,6 +35,7 @@ def index():
         return redirect(url_for('welcome'))
     return render_template('login.html')
 
+
 @app.route('/register', methods=['POST'])
 def register():
     """Обробляє реєстрацію нового користувача."""
@@ -93,6 +94,7 @@ def login():
         flash('Неправильне ім\'я користувача або пароль.', 'error')
         return redirect(url_for('index'))
 
+
 @app.route('/welcome')
 def welcome():
     """Сторінка привітання для залогінених користувачів."""
@@ -102,6 +104,36 @@ def welcome():
         
     username = session.get('username', 'Гість')
     return render_template('welcome.html', username=username)
+
+
+@app.route('/export')
+@login_required
+def export_tasks():
+    """Генерує текстове представлення завдань для експорту."""
+    user_id = session['user_id']
+    user = User.query.get(user_id)
+    tasks = Task.query.filter_by(user_id=user_id).order_by(Task.category, Task.timestamp.desc()).all()
+
+    if not tasks:
+        flash('У вас ще немає завдань для експорту.', 'info')
+        return redirect(url_for('planner'))
+
+    export_text_lines = [f"📋 Список завдань для користувача: {user.username}\n"]
+
+    current_category = None
+    for task in tasks:
+        if task.category != current_category:
+            category_name = CATEGORIES.get(task.category, task.category.capitalize())
+            export_text_lines.append(f"\n--- {category_name} ---")
+            current_category = task.category
+
+        status_emoji = "✔️" if task.is_completed else "⭕"
+        export_text_lines.append(f"{status_emoji} {task.content}")
+
+    export_text = "\n".join(export_text_lines)
+
+    return render_template('export.html', export_text=export_text)
+
 
 @app.route('/logout')
 def logout():
