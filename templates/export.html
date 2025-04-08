@@ -24,14 +24,10 @@
     function copyText() {
         const textArea = document.getElementById('exportTextArea');
         const copyButton = document.getElementById('copyButton');
-
         textArea.select();
-        textArea.setSelectionRange(0, 99999);
-
+        textArea.setSelectionRange(0, 99999); // For mobile devices
         try {
-
             navigator.clipboard.writeText(textArea.value).then(() => {
-
                 copyButton.textContent = '✅ Скопійовано!';
                 copyButton.classList.remove('btn-primary');
                 copyButton.classList.add('btn-success');
@@ -49,11 +45,20 @@
              fallbackCopyTextToClipboard(textArea.value);
         }
     }
-  
     function fallbackCopyTextToClipboard(text) {
         const copyButton = document.getElementById('copyButton');
+        // Цей метод може не працювати в усіх контекстах, особливо в webview
         try {
+            // Створюємо тимчасовий елемент textarea
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = text;
+            tempTextArea.style.position = "absolute"; // Ховаємо його
+            tempTextArea.style.left = "-9999px";
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
             const successful = document.execCommand('copy');
+            document.body.removeChild(tempTextArea); // Прибираємо елемент
+
             if (successful) {
                 copyButton.textContent = '✅ Скопійовано!';
                 copyButton.classList.remove('btn-primary');
