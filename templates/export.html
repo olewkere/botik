@@ -25,7 +25,7 @@
         const textArea = document.getElementById('exportTextArea');
         const copyButton = document.getElementById('copyButton');
         textArea.select();
-        textArea.setSelectionRange(0, 99999); // For mobile devices
+        textArea.setSelectionRange(0, 99999);
         try {
             navigator.clipboard.writeText(textArea.value).then(() => {
                 copyButton.textContent = '✅ Скопійовано!';
@@ -47,17 +47,15 @@
     }
     function fallbackCopyTextToClipboard(text) {
         const copyButton = document.getElementById('copyButton');
-        // Цей метод може не працювати в усіх контекстах, особливо в webview
         try {
-            // Створюємо тимчасовий елемент textarea
             const tempTextArea = document.createElement("textarea");
             tempTextArea.value = text;
-            tempTextArea.style.position = "absolute"; // Ховаємо його
+            tempTextArea.style.position = "absolute";
             tempTextArea.style.left = "-9999px";
             document.body.appendChild(tempTextArea);
             tempTextArea.select();
             const successful = document.execCommand('copy');
-            document.body.removeChild(tempTextArea); // Прибираємо елемент
+            document.body.removeChild(tempTextArea);
 
             if (successful) {
                 copyButton.textContent = '✅ Скопійовано!';
