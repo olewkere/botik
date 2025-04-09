@@ -1,1 +1,1 @@
-Планувальник для Telegram Bot-(а)
+Planer app for Telegram with support of Render for hosting.
