@@ -1,16 +1,14 @@
-# app.py
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
 from functools import wraps
-from models import db, User, Task # Імпортуємо Task
-from werkzeug.exceptions import NotFound # Для обробки 404
+from models import db, User, Task
+from werkzeug.exceptions import NotFound
 from datetime import datetime
 
 load_dotenv()
 app = Flask(__name__)
 
-# --- Конфігурація ---
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 db_user = os.getenv('DATABASE_USER')
 db_password = os.getenv('DATABASE_PASSWORD')
@@ -19,10 +17,8 @@ db_name = os.getenv('DATABASE_NAME')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- Ініціалізація розширень ---
 db.init_app(app)
 
-# --- Створення таблиць ---
 with app.app_context():
     try:
         print("Спроба створити/оновити таблиці бази даних...")
@@ -31,23 +27,20 @@ with app.app_context():
     except Exception as e:
         print(f"Помилка при створенні/оновленні таблиць: {e}")
 
-# --- Контекстний процесор для додавання поточного року ---
 @app.context_processor
 def inject_current_year():
     """Робить поточний рік доступним для всіх шаблонів."""
     return {'current_year': datetime.utcnow().year}
 
-# --- Декоратор для перевірки входу ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             flash('Будь ласка, увійдіть, щоб отримати доступ до цієї сторінки.', 'warning')
-            return redirect(url_for('login')) # Перенаправлення на сторінку входу
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
-# --- Категорії та Емодзі ---
 CATEGORIES = {
     'spring': 'Весна 🌱',
     'summer': 'Літо ☀️',
@@ -56,7 +49,6 @@ CATEGORIES = {
     'general': 'Загальні 📌'
 }
 
-# --- Маршрути ---
 
 @app.route('/')
 def index():
@@ -64,9 +56,9 @@ def index():
         return redirect(url_for('planner'))
     return redirect(url_for('login'))
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # ... (Код реєстрації залишається той самий, що й був) ...
     if 'user_id' in session:
         return redirect(url_for('planner'))
     if request.method == 'POST':
@@ -100,7 +92,6 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-     # ... (Код логіну залишається той самий, що й був) ...
     if 'user_id' in session:
         return redirect(url_for('planner'))
     if request.method == 'POST':
@@ -120,22 +111,20 @@ def login():
             return render_template('login.html')
     return render_template('login.html')
 
+
 @app.route('/logout')
 @login_required
 def logout():
-    # ... (Код виходу залишається той самий, що й був) ...
     username = session.get('username', 'Користувач')
     session.pop('user_id', None)
     session.pop('username', None)
     flash(f'До побачення, {username}! Ви успішно вийшли.', 'info')
     return redirect(url_for('login'))
 
-# --- Маршрути Планувальника ---
 
 @app.route('/planner')
 @login_required
 def planner():
-    # ... (Код планувальника залишається той самий, що й був) ...
     user_id = session['user_id']
     tasks = Task.query.filter_by(user_id=user_id).order_by(Task.category, Task.timestamp.desc()).all()
     tasks_by_category = {category_key: [] for category_key in CATEGORIES.keys()}
@@ -146,10 +135,10 @@ def planner():
             tasks_by_category['general'].append(task)
     return render_template('planner.html', tasks_by_category=tasks_by_category, categories=CATEGORIES)
 
+
 @app.route('/add_task', methods=['POST'])
 @login_required
 def add_task():
-    # ... (Код додавання завдання залишається той самий, що й був) ...
     content = request.form.get('content')
     category = request.form.get('category')
     if not content:
@@ -169,10 +158,10 @@ def add_task():
         print(f"Помилка додавання завдання: {e}")
     return redirect(url_for('planner'))
 
+
 @app.route('/toggle_task/<int:task_id>', methods=['POST'])
 @login_required
 def toggle_task(task_id):
-    # ... (Код зміни статусу залишається той самий, що й був) ...
     task = Task.query.get_or_404(task_id)
     if task.user_id != session['user_id']:
         flash('У вас немає доступу до цього завдання.', 'danger')
@@ -188,10 +177,10 @@ def toggle_task(task_id):
         print(f"Помилка зміни статусу завдання: {e}")
     return redirect(url_for('planner'))
 
+
 @app.route('/delete_task/<int:task_id>', methods=['POST'])
 @login_required
 def delete_task(task_id):
-    # ... (Код видалення залишається той самий, що й був) ...
     task = Task.query.get_or_404(task_id)
     if task.user_id != session['user_id']:
         flash('У вас немає доступу до цього завдання.', 'danger')
@@ -207,10 +196,10 @@ def delete_task(task_id):
         print(f"Помилка видалення завдання: {e}")
     return redirect(url_for('planner'))
 
+
 @app.route('/edit_task/<int:task_id>', methods=['GET', 'POST'])
 @login_required
 def edit_task(task_id):
-    # ... (Код редагування залишається той самий, що й був) ...
     task = Task.query.get_or_404(task_id)
     if task.user_id != session['user_id']:
         flash('У вас немає доступу до редагування цього завдання.', 'danger')
@@ -237,7 +226,7 @@ def edit_task(task_id):
             return render_template('edit_task.html', task=task, categories=CATEGORIES)
     return render_template('edit_task.html', task=task, categories=CATEGORIES)
 
-# ! ПОВЕРТАЄМО МАРШРУТ ДЛЯ ЕКСПОРТУ !
+
 @app.route('/export')
 @login_required
 def export_tasks():
@@ -264,11 +253,9 @@ def export_tasks():
     return render_template('export.html', export_text=export_text)
 
 
-# --- Обробник помилок Flask ---
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
-# --- Запуск Flask (тільки для локальної розробки) ---
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0')
